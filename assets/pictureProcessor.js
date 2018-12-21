@@ -1,27 +1,14 @@
 
 
-var processColour = function(binaryData, l, width, height, pixels, shift, voronoiContainmentData, interCommContainmentData, 
+var processColour = function(binaryData, width, height, pixels, voronoiContainmentData, interCommContainmentData, 
                               voronoi_means, voronoi_counts , voronoi_hist, interComm_means, interComm_counts, interComm_hist, firstVoronoiByInterComm, bounds,
                               percentiles, colors){
 
-  //var num_percentiles = percentiles.length + 2
-  //var num_colors = colors.length
-
   function getColour(d){
-    /*var min_dist = 255
-    var min_index = 0
-    for (var i=0; i<percentiles.length; ++i){
-      if (Math.abs(percentiles[i] - d) < min_dist){
-        min_dist = Math.abs(percentiles[i] - d)
-        min_index = i
-      }
-    }*/
-    //console.log(colors[d])
     if (d > 255){
       console.log("oops!")
     }
     var string = ""+colors[d]
-    //console.log(string)
     return string.substring(4, string.length-1)
          .replace(/ /g, '')
          .split(',');
@@ -35,10 +22,8 @@ var processColour = function(binaryData, l, width, height, pixels, shift, vorono
   const original_width = 1977
   const original_height = 1590
 
-  //console.log(voronoi_hist)
-  //console.log(bounds)
   var  voronoiInInterCommCount = []
-  for (var i=0; i<l; i++) {
+  for (var i=0; i<width*height; i++) {
 
       var px = i%width
       var py = Math.floor(i/width)
@@ -46,7 +31,7 @@ var processColour = function(binaryData, l, width, height, pixels, shift, vorono
       if(px >= 0 && px < width && py >= 0 && py < height){
           var pos = i*4
 
-          var value = pixels[shift + i]
+          var value = pixels[i]
 
           //careful here! our data is always between image_width and image_height (well, inside this rectangle), but the containment
           //data was always between default_tl and default_br, so we have to compute the location in this referential before sampling
@@ -71,8 +56,8 @@ var processColour = function(binaryData, l, width, height, pixels, shift, vorono
           if (original_px >= 0 && original_py >= 0 && original_px < original_width && original_py < original_width){ 
             var containment_index = original_px + original_py * original_width
 
-            voronoi_id = voronoiContainmentData[shift + containment_index]
-            interComm_id = interCommContainmentData[shift + containment_index]
+            voronoi_id = voronoiContainmentData[containment_index]
+            interComm_id = interCommContainmentData[containment_index]
           }// else, this image is bigger, this pixel is outside! so in no voronoi or interComm..
       
           if (value != null){
@@ -101,9 +86,6 @@ var processColour = function(binaryData, l, width, height, pixels, shift, vorono
             }
 
             voronoiInInterCommCount[interComm_id - 1][voronoi_id - 1] += 1
-            /*if (firstVoronoiByInterComm[interComm_id-1] > voronoi_id - 1){
-              firstVoronoiByInterComm[interComm_id-1] = voronoi_id - 1
-            }*/
           }
 
           var color = getColour(value)
@@ -152,11 +134,6 @@ self.addEventListener('message', function(e) {
   var percentiles = e.data.colorDomain
   var colors = e.data.colorRange
 
-  //console.log(colors,percentiles)
-
-  var l = e.data.length;
-  var index = e.data.index;
-
   //initalize means and counts arrays
   var voronoi_means = []
   var voronoi_counts = []
@@ -190,7 +167,7 @@ self.addEventListener('message', function(e) {
     firstVoronoiByInterComm[i]=10000 // bigger than the max, which is around 670
   }
 
-  processColour(binaryData,l,width,height,pixels, l*index, voronoiContainmentData, interCommContainmentData, voronoi_means, voronoi_counts ,voronoi_hist,interComm_means, interComm_counts, interComm_hist, firstVoronoiByInterComm,
+  processColour(binaryData,width,height,pixels, voronoiContainmentData, interCommContainmentData, voronoi_means, voronoi_counts ,voronoi_hist,interComm_means, interComm_counts, interComm_hist, firstVoronoiByInterComm,
                 {tl_lat:tl_lat,
                 tl_lng:tl_lng,
                 br_lat:br_lat,
@@ -198,7 +175,6 @@ self.addEventListener('message', function(e) {
                 percentiles,colors)
 
   self.postMessage({result: canvasData,
-                    index: index,
                     voronoi_means:voronoi_means,
                     voronoi_counts:voronoi_counts,
                     voronoi_hist:voronoi_hist,
